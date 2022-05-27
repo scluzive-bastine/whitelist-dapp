@@ -31,12 +31,117 @@ const Home = () => {
     return web3Provider
   }
 
+  const addAddressToWhitelist = async () => {
+    try {
+      const signer = await getProviderOrSigner(true)
+      const contract = new Contract(WHITELIST_CONTRACT_ADDRESS, abi, signer)
+
+      const tx = await contract.addAddressToWhitelist()
+      setLoading(true)
+      await tx.wait()
+      setLoading(false)
+      await getNumberOfWhitelisted()
+      setJoinedWhitelist(true)
+    } catch (error) {
+      console.log(error)
+    }
+  }
+
+  const getNumberOfWhitelisted = async () => {
+    try {
+      const signer = await getProviderOrSigner()
+      const contract = new Contract(WHITELIST_CONTRACT_ADDRESS, abi, signer)
+
+      const _numberOfWhitelisted = await contract.numAddressesWhitelisted()
+      setNumberOfWhitelisted(_numberOfWhitelisted)
+    } catch (error) {
+      console.log(error)
+    }
+  }
+
+  const checkIfAddressInWhitelist = async () => {
+    try {
+      const signer = await getProviderOrSigner(true)
+      const contract = new Contract(WHITELIST_CONTRACT_ADDRESS, abi, signer)
+
+      const address = await signer.getAddress()
+      const _joinedWhitelist = await contract.whitelistedAddresses(address)
+      setJoinedWhitelist(_joinedWhitelist)
+    } catch (error) {
+      console.log(error)
+    }
+  }
+
+  const connectWallet = async () => {
+    try {
+      await getProviderOrSigner()
+      setWalletConnected(true)
+      checkIfAddressInWhitelist()
+      getNumberOfWhitelisted()
+    } catch (error) {
+      console.log(error)
+    }
+  }
+
+  const renderButton = () => {
+    if (walletConnected) {
+      if (joinedWhitelist) {
+        return (
+          <div className="description">Thanks for joining the Whitelist!</div>
+        )
+      } else if (loading) {
+        return <button className="button">Loading...</button>
+      } else {
+        return (
+          <button className="button" onClick={addAddressToWhitelist}>
+            Join Whitelist
+          </button>
+        )
+      }
+    } else {
+      return (
+        <button className="button" onClick={connectWallet}>
+          Connect Wallet
+        </button>
+      )
+    }
+  }
+
+  useEffect(() => {
+    if (!walletConnected) {
+      web3ModalRef.current = new Web3Modal({
+        network: 'rinkeby',
+        providerOptions: {},
+        disableInjectedProvider: false,
+      })
+      connectWallet()
+    }
+  }, [walletConnected])
+
   return (
-    <div className="flex min-h-screen flex-col items-center justify-center py-2">
+    <div>
       <Head>
         <title>WhiteList Addresses</title>
         <link rel="icon" href="/favicon.ico" />
       </Head>
+
+      <div className="grid min-h-screen grid-cols-2 items-center space-x-5 px-5">
+        <div className="flex justify-center">
+          <div>
+            <h1 className="title">Welcome to Crypto Engineers!</h1>
+            <div className="description">
+              Its an NFT collection for engineers in Crypto.
+            </div>
+            <div className="description">
+              {numberOfWhitelisted} have already joined the Whitelist
+            </div>
+            {renderButton()}
+          </div>
+        </div>
+        <div className="flex justify-center">
+          <img className="image" src="./image.svg" />
+        </div>
+      </div>
     </div>
   )
 }
